@@ -55,10 +55,8 @@ class AutoMacroEditor(wx.Frame):
             self.HotKeyKey = wx.TextCtrl(self.panel, value = "", size = (100,20), pos = (125,70), style = wx.TE_READONLY)
             self.TimeDelay = wx.TextCtrl(self.panel, value = str(10), size = (100,20), pos = (125,100))
             self.Bind(wx.EVT_BUTTON, self.add, self.CreateKey)
-            
 
-        
-        
+
 
     def add(self, event):
         MacName = self.MacroName.GetValue()
@@ -104,7 +102,7 @@ class AutoMacroEditor(wx.Frame):
             abs(int(TD))
         except:
             print("NOOO")
-            return 
+            return
         self.main.entrylist.Delete(self.main.entries.index(self.origname))
         del self.main.entryvals[self.origname]
         self.main.entries.remove(self.origname)
@@ -134,9 +132,9 @@ class MainWindow(wx.Frame):
         self.entries = []
         self.Profile = None
         self.Default = None
-        
+
         wx.Frame.__init__(self,parent,title=title, size=(400,211))
-        tmp = wx.LogNull()    
+        tmp = wx.LogNull()
 
         panel = wx.Panel(self, size = (400,200), style = wx.SUNKEN_BORDER)
         box = wx.BoxSizer(wx.HORIZONTAL)
@@ -144,7 +142,7 @@ class MainWindow(wx.Frame):
         rightbox = wx.BoxSizer(wx.VERTICAL)
 
         self.text = wx.StaticText(panel, label =" Item 1: \n Item 2:  \n HotKey active:  \n Listening: \n Type: ", size = (100,75),style = wx.TE_MULTILINE)
-        
+
         self.entrylist = wx.ListBox(panel, size = (100, 100), choices = self.entries, style = wx.LB_SINGLE | wx.LB_OWNERDRAW)
 
         self.creationwinbut = wx.Button(panel, label = "Create Macro", pos = (150,-200), size = (125, 25))
@@ -153,7 +151,7 @@ class MainWindow(wx.Frame):
 
         self.editwinbut = wx.Button(panel, label = "Edit Macro", pos = (150,-175), size = (125,25))
         self.Bind(wx.EVT_BUTTON, self.editwin, self.editwinbut)
-                
+
 
         leftbox.Add(self.entrylist, 0, wx.EXPAND)
         leftbox.Add(self.creationwinbut, 0, wx.EXPAND)
@@ -162,14 +160,14 @@ class MainWindow(wx.Frame):
 
         box.Add(leftbox, 0, wx.EXPAND)
         box.Add(rightbox, 0, wx.EXPAND)
-        
+
 
         panel.SetSizer(box)
         panel.Fit()
         self.Bind(wx.EVT_LISTBOX, self.OnMacroList, self.entrylist)
         self.Bind(wx.EVT_LISTBOX_DCLICK, self.toggleListenHotkey, self.entrylist)
-        
-        
+
+
         self.statusbar = self.CreateStatusBar()
         self.statusbar.SetStatusText('Double Click to Activate Listening for hotkey')
 
@@ -209,24 +207,22 @@ class MainWindow(wx.Frame):
             if str(os.path.dirname(os.path.realpath(__file__)) + "\\Profiles\\" + x) == Defaultprof:
                 self.profilemenus[-1].Check()
                 self.Default = self.profilemenus[-1].GetId()
-        
-            
 
         menubar = wx.MenuBar()
         menubar.Append(filemenu,"&File")
         menubar.Append(self.DefProfileMenu, "&Default Profile")
         self.SetMenuBar(menubar)
         self.Show(True)
+
         if wx.Icon("Assets/YTLogoBaseMKI.ico").IsOk():
             self.SetIcon(wx.Icon("Assets/YTLogoBaseMKI.ico"))
         else:
             self.MissingIcon()
 
-
-
-        
         self.listenthread = threading.Thread(target = self.timedhotkey)
         self.listenthread.start()
+
+
 
     def Flip(self, event):
         print(self.Default)
@@ -246,8 +242,6 @@ class MainWindow(wx.Frame):
         else:
             with open(str(os.path.dirname(os.path.realpath(__file__)).replace("\\", "\\"))+"\\Profiles\\Default_Profile.BradBotDef", 'w') as Default:
                 Default.write("None")
-            
-            
 
     def OnAbout(self, event):
         dlg = wx.MessageDialog(self, "A small macro clicker thing", "An auto clicker with variable macros and timings")
@@ -255,7 +249,6 @@ class MainWindow(wx.Frame):
         dlg.Destroy()
 
     def OnOpen(self, event):
-
         if self.contentNotSaved:
             if wx.MessageBox("Current content has not been saved! Proceed?", "Please confirm",wx.ICON_QUESTION | wx.YES_NO, self) == wx.NO:
                 return
@@ -263,7 +256,7 @@ class MainWindow(wx.Frame):
         # otherwise ask the user what new file to open
         with wx.FileDialog(self, "Open XYZ file", wildcard="BradBot files (*.BradBot)|*.BradBot", style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
             fileDialog.SetDirectory(str(os.path.dirname(os.path.realpath(__file__)).replace("\\", "\\\\"))+"\\Profiles\\")
-                
+
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return     # the user changed their mind
 
@@ -280,7 +273,7 @@ class MainWindow(wx.Frame):
         entryline = file.readline()
         for name in self.entries:
             self.entrylist.Delete(self.entries.index(name))
-            
+
         self.entries = entryline.split(", ")[:-1]
         for pos in range(0, len(self.entries)):
             self.entrylist.InsertItems([self.entries[pos]],pos)
@@ -317,10 +310,11 @@ class MainWindow(wx.Frame):
             for data in self.entryvals[entry][:-1]:
                 file.write("{}, ".format(data))
 
-
     def MissingFile(self, FType):
-        pass
-    
+        dlg = wx.MessageDialog(self, "Missing File", "Missing {} in {}".format(FType[0], FType[1]))
+        dlg.ShowModal()
+        dlg.Destroy()
+
     def MissingIcon(self):
         dlg = wx.MessageDialog(self, "Missing File", "Missing Icon File in Assets File")
         dlg.ShowModal()
@@ -366,7 +360,7 @@ class MainWindow(wx.Frame):
             self.creationwindow.Show()
         except:
             print("How tf")
-    
+
     def timedhotkey(self):
         diff = 0
         run = True
@@ -393,8 +387,8 @@ class MainWindow(wx.Frame):
                         keyboard.press(self.entryvals[Hotkey][1])
                         sleep(0.05)
                         keyboard.release(self.entryvals[Hotkey][1])
-        
-        
+
+
 
 
 
@@ -402,7 +396,3 @@ app = wx.App(False)
 frame = MainWindow(None, "BradBot Auto-Clicker So im always here")
 
 app.MainLoop()
-
-
-
-                                   
