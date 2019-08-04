@@ -223,7 +223,6 @@ class MainWindow(wx.Frame):
         self.listenthread.start()
 
 
-
     def Flip(self, event):
         print(self.Default)
         for x in self.profilemenus:
@@ -249,10 +248,10 @@ class MainWindow(wx.Frame):
         dlg.Destroy()
 
     def OnOpen(self, event):
+
         if self.contentNotSaved:
             if wx.MessageBox("Current content has not been saved! Proceed?", "Please confirm",wx.ICON_QUESTION | wx.YES_NO, self) == wx.NO:
                 return
-
         # otherwise ask the user what new file to open
         with wx.FileDialog(self, "Open XYZ file", wildcard="BradBot files (*.BradBot)|*.BradBot", style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
             fileDialog.SetDirectory(str(os.path.dirname(os.path.realpath(__file__)).replace("\\", "\\\\"))+"\\Profiles\\")
@@ -328,7 +327,6 @@ class MainWindow(wx.Frame):
         self.Destroy()
         os._exit(0)
 
-
     def OnMacroList(self, event):
         try:
             entry=event.GetEventObject().GetStringSelection()
@@ -347,7 +345,6 @@ class MainWindow(wx.Frame):
         if not (self.listenthread.is_alive()):
             self.listenthread = threading.Thread(target = self.timedhotkey)
             self.listenthread.start()
-
 
     def createcreationwin(self, event):
         self.creationwindow = AutoMacroEditor(None, "Macro Editor", self)
