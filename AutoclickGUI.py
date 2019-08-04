@@ -83,6 +83,7 @@ class AutoMacroEditor(wx.Frame):
         self.main.entryvals[MacName] = [MacKey, HKK, False, False, TD, time()]
         self.main.entrylist.InsertItems([MacName],len(self.main.entries)-1)
         self.main.entrylist.SetItemBackgroundColour(len(self.main.entries)-1, wx.RED)
+        self.contentNotSaved = True
         self.Destroy()
 
     def edit(self, event):
@@ -109,9 +110,9 @@ class AutoMacroEditor(wx.Frame):
         self.main.entries.remove(self.origname)
         self.main.entries.append(MacName)
         self.main.entryvals[MacName] = [MacKey, HKK, False, False, TD, time()]
-        print(len(self.main.entries))
         self.main.entrylist.InsertItems([MacName],len(self.main.entries)-1)
         self.main.entrylist.SetItemBackgroundColour(len(self.main.entries)-1, wx.RED)
+        self.contentNotSaved = True
         self.Destroy()
 
 
@@ -127,12 +128,15 @@ class AutoMacroEditor(wx.Frame):
 
 class MainWindow(wx.Frame):
     def __init__(self,parent,title):
+        self.contentNotSaved = False
         #set entryvals as "Hotkey Name" ("Activator hotkey", "Thing to click", toggleval, listenval, time wait, lasttime pressed)
-        self.entryvals = {"Yay":["shift+1", "1",False, False, 4, time()]}
-        self.entries = ["Yay"]
+        self.entryvals = {}
+        self.entries = []
+        self.Profile = None
+        self.Default = None
         
         wx.Frame.__init__(self,parent,title=title, size=(400,211))
-        self.SetIcon(wx.Icon("YTLogoBaseMKI.ico"))
+        tmp = wx.LogNull()    
 
         panel = wx.Panel(self, size = (400,200), style = wx.SUNKEN_BORDER)
         box = wx.BoxSizer(wx.HORIZONTAL)
@@ -172,24 +176,153 @@ class MainWindow(wx.Frame):
         filemenu=wx.Menu()
         menuAbout = filemenu.Append(wx.ID_ABOUT, "&About","Information about this program")
         self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
+        menuOpen = filemenu.Append(wx.ID_OPEN, "&Open", "Open saved Profile")
+        self.Bind(wx.EVT_MENU, self.OnOpen, menuOpen)
+        menuSave = filemenu.Append(wx.ID_SAVE, "&Save As", "Save current profile")
+        self.Bind(wx.EVT_MENU, self.OnSaveProfAs, menuSave)
+
         filemenu.AppendSeparator()
         menuExit = filemenu.Append(wx.ID_EXIT, "E&xit", "Terminate the program")
         self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
         self.Bind(wx.EVT_CLOSE, self.OnExit)
 
+        self.DefProfileMenu = wx.Menu()
+        self.Profiles = os.listdir(os.path.dirname(os.path.realpath(__file__)).replace("\\", "\\\\")+"\\Profiles\\")
+        self.profilemenus = []
+        self.Profiles.remove("Default_Profile.BradBotDef")
+
+        with open(str(os.path.dirname(os.path.realpath(__file__)).replace("\\", "\\\\"))+"\\Profiles\\Default_Profile.BradBotDef", 'r') as Default:
+            Defaultprof = Default.readline()
+        if Defaultprof != "None":
+            try:
+                with open(Defaultprof, 'r') as file:
+                    self.doLoadData(file, Defaultprof)
+            except:
+                print("No Default")
+        else:
+            print("No Default")
+
+
+        for x in self.Profiles:
+            self.profilemenus.append(self.DefProfileMenu.Append(wx.ID_ANY, x, "Profile", kind=wx.ITEM_CHECK))
+            self.Bind(wx.EVT_MENU, self.Flip, self.profilemenus[-1])
+            if str(os.path.dirname(os.path.realpath(__file__)) + "\\Profiles\\" + x) == Defaultprof:
+                self.profilemenus[-1].Check()
+                self.Default = self.profilemenus[-1].GetId()
+        
+            
+
         menubar = wx.MenuBar()
         menubar.Append(filemenu,"&File")
+        menubar.Append(self.DefProfileMenu, "&Default Profile")
         self.SetMenuBar(menubar)
         self.Show(True)
-        try:
-            self.entrylist.SetItemBackgroundColour(0, wx.RED)
-        except:
-            pass
+        if wx.Icon("Assets/YTLogoBaseMKI.ico").IsOk():
+            self.SetIcon(wx.Icon("Assets/YTLogoBaseMKI.ico"))
+        else:
+            self.MissingIcon()
+
+
+
+        
         self.listenthread = threading.Thread(target = self.timedhotkey)
         self.listenthread.start()
 
+    def Flip(self, event):
+        print(self.Default)
+        for x in self.profilemenus:
+            if x.GetId() != self.Default and x.IsChecked():
+                if self.Default != None:
+                    print(self.Default)
+                    self.DefProfileMenu.Check(self.Default,False)
+                self.Default = x.GetId()
+                print("Wah")
+            elif x.GetId() == self.Default and not x.IsChecked():
+                print("test")
+                self.Default = None
+        if self.Default != None:
+            with open(str(os.path.dirname(os.path.realpath(__file__)).replace("\\", "\\"))+"\\Profiles\\Default_Profile.BradBotDef", 'w') as Default:
+                Default.write(str(os.path.dirname(os.path.realpath(__file__)).replace("\\", "\\"))+"\\Profiles\\" + self.DefProfileMenu.GetLabel(self.Default))
+        else:
+            with open(str(os.path.dirname(os.path.realpath(__file__)).replace("\\", "\\"))+"\\Profiles\\Default_Profile.BradBotDef", 'w') as Default:
+                Default.write("None")
+            
+            
+
     def OnAbout(self, event):
         dlg = wx.MessageDialog(self, "A small macro clicker thing", "An auto clicker with variable macros and timings")
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def OnOpen(self, event):
+
+        if self.contentNotSaved:
+            if wx.MessageBox("Current content has not been saved! Proceed?", "Please confirm",wx.ICON_QUESTION | wx.YES_NO, self) == wx.NO:
+                return
+
+        # otherwise ask the user what new file to open
+        with wx.FileDialog(self, "Open XYZ file", wildcard="BradBot files (*.BradBot)|*.BradBot", style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
+            fileDialog.SetDirectory(str(os.path.dirname(os.path.realpath(__file__)).replace("\\", "\\\\"))+"\\Profiles\\")
+                
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return     # the user changed their mind
+
+            # Proceed loading the file chosen by the user
+            pathname = fileDialog.GetPath()
+            try:
+                with open(pathname, 'r') as file:
+                    self.doLoadData(file, pathname)
+            except IOError:
+                wx.LogError("Cannot open file '%s'." % newfile)
+
+    def doLoadData(self, file, pathname):
+        self.Profile = pathname.split("\\")[-1].split(".")[0]
+        entryline = file.readline()
+        for name in self.entries:
+            self.entrylist.Delete(self.entries.index(name))
+            
+        self.entries = entryline.split(", ")[:-1]
+        for pos in range(0, len(self.entries)):
+            self.entrylist.InsertItems([self.entries[pos]],pos)
+            self.entrylist.SetItemBackgroundColour(pos, wx.RED)
+        for entrypos in range(0, len(self.entries)):
+            newentry = file.readline().split(", ")[:-1]
+            newentry.append(time())
+            newentry[4] = int(newentry[4])
+            self.entryvals[self.entries[entrypos]] = newentry
+
+    def OnSaveProfAs(self, event):
+        workdi = str(os.path.dirname(os.path.realpath(__file__)).replace("\\", "\\\\"))+"\\Profiles\\"
+        with wx.FileDialog(self, "Save Profile", wildcard="BradBot File (*.BradBot)|*.BradBot", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
+            fileDialog.SetDirectory(workdi)
+
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return     # the user changed their mind
+
+            # save the current contents in the file
+            pathname = fileDialog.GetPath()
+            try:
+                with open(pathname, 'w') as file:
+                    self.doSaveData(file,pathname)
+                self.contentNotSaved = False
+            except IOError:
+                wx.LogError("Cannot save current data in file '%s'." % pathname)
+
+    def doSaveData(self, file, pathname):
+        self.Profile = pathname.split("\\")[-1].split(".")[0]
+        for entry in self.entries:
+            file.write("{}, ".format(entry))
+        for entry in self.entries:
+            file.write("\n")
+            for data in self.entryvals[entry][:-1]:
+                file.write("{}, ".format(data))
+
+
+    def MissingFile(self, FType):
+        pass
+    
+    def MissingIcon(self):
+        dlg = wx.MessageDialog(self, "Missing File", "Missing Icon File in Assets File")
         dlg.ShowModal()
         dlg.Destroy()
 
@@ -238,7 +371,7 @@ class MainWindow(wx.Frame):
         diff = 0
         run = True
         for Hotkey in self.entries:
-            print(Hotkey)
+            #print(Hotkey)
             self.entryvals[Hotkey][5] = time()
 
         while(run):
