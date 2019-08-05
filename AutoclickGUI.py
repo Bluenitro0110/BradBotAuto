@@ -3,6 +3,7 @@ from time import sleep, time
 from random import randint
 
 
+#modified wx textctrl to allow a Placeholder text to be set when the ctrl is empty
 class PlaceholderTextCtrl(wx.TextCtrl):
     def __init__(self, *args, **kwargs):
         self.default_text = kwargs.pop("placeholder", "")
@@ -24,6 +25,7 @@ class PlaceholderTextCtrl(wx.TextCtrl):
         if evt:
             evt.Skip()
 
+#Main Macro Creation window for now pending new macro types instead of just auto clicking
 class AutoMacroEditor(wx.Frame):
     def __init__(self, parent, title, main, edit = None):
         wx.Frame.__init__(self, parent, title = title, size = (400,250), style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER)
@@ -41,6 +43,7 @@ class AutoMacroEditor(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.get_mkey, self.Macrobut)
         self.Bind(wx.EVT_BUTTON, self.get_hkey, self.Hotkeybut)
 
+        #checks to see if editing a preexisting macro if so preset the values for macro otherwise load an empty window
         if edit != None:
             self.origname = edit
             self.MacroName = wx.TextCtrl(self.panel, value = edit, pos = (125,10), size = (150,20))
@@ -57,8 +60,9 @@ class AutoMacroEditor(wx.Frame):
             self.Bind(wx.EVT_BUTTON, self.add, self.CreateKey)
 
 
-
+    #Function used for adding a new macro
     def add(self, event):
+        #Gather macro details and rudimentry check to make sure they are valid #####Update the error checking to be more precise and open a dialog window for user##
         MacName = self.MacroName.GetValue()
         MacKey = self.MacroKey.GetValue()
         HKK = self.HotKeyKey.GetValue()
@@ -77,11 +81,13 @@ class AutoMacroEditor(wx.Frame):
         except:
             print("NOOO")
             return
+        #Create the new macro entry in the main wx frame object (MainWindow)
         self.main.entries.append(MacName)
         self.main.entryvals[MacName] = [MacKey, HKK, False, False, TD, time()]
         self.main.entrylist.InsertItems([MacName],len(self.main.entries)-1)
         self.main.entrylist.SetItemBackgroundColour(len(self.main.entries)-1, wx.RED)
-        self.contentNotSaved = True
+        #Set the boolean unsaved variable to true until profile saved and Close the window
+        self.main.contentNotSaved = True
         self.Destroy()
 
     def edit(self, event):
@@ -103,39 +109,47 @@ class AutoMacroEditor(wx.Frame):
         except:
             print("NOOO")
             return
+        #Remove all instances of original macro so that they can be replaced by the new edited macro
         self.main.entrylist.Delete(self.main.entries.index(self.origname))
         del self.main.entryvals[self.origname]
         self.main.entries.remove(self.origname)
+        #Add the macro back into the lists
         self.main.entries.append(MacName)
         self.main.entryvals[MacName] = [MacKey, HKK, False, False, TD, time()]
         self.main.entrylist.InsertItems([MacName],len(self.main.entries)-1)
         self.main.entrylist.SetItemBackgroundColour(len(self.main.entries)-1, wx.RED)
-        self.contentNotSaved = True
+        #Set the boolean unsaved variable to true until profile saved and Close the window
+        self.main.contentNotSaved = True
         self.Destroy()
 
-
+    #Function usedf to get the macrokey when setting
     def get_mkey(self, event):
         mkey = ""
         mkey = keyboard.read_hotkey(False)
         self.MacroKey.SetValue(mkey)
 
+    #Function used to get the hotkey after button is pressed
     def get_hkey(self, event):
         hkey = ""
         hkey = keyboard.read_hotkey(False)
         self.HotKeyKey.SetValue(hkey)
 
+#Main Program window
 class MainWindow(wx.Frame):
     def __init__(self,parent,title):
+        #Initialise variables for Entrues as well as Default value and Current Profile name
         self.contentNotSaved = False
-        #set entryvals as "Hotkey Name" ("Activator hotkey", "Thing to click", toggleval, listenval, time wait, lasttime pressed)
+        #set entryvals as "Hotkey Name": ("Activator hotkey", "Thing to click", toggleval, listenval, time wait, lasttime pressed)
         self.entryvals = {}
         self.entries = []
         self.Profile = None
         self.Default = None
 
         wx.Frame.__init__(self,parent,title=title, size=(400,211))
+        #Prevent wx from generating Log windows to allow only specifically created Error windows from showing
         tmp = wx.LogNull()
 
+        #Panel Creation and layout setup
         panel = wx.Panel(self, size = (400,200), style = wx.SUNKEN_BORDER)
         box = wx.BoxSizer(wx.HORIZONTAL)
         leftbox = wx.BoxSizer(wx.VERTICAL)
@@ -167,28 +181,33 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_LISTBOX, self.OnMacroList, self.entrylist)
         self.Bind(wx.EVT_LISTBOX_DCLICK, self.toggleListenHotkey, self.entrylist)
 
-
+        #Create Statusbar and set basic help line
         self.statusbar = self.CreateStatusBar()
         self.statusbar.SetStatusText('Double Click to Activate Listening for hotkey')
 
+        #Create the file menu for menubar
         filemenu=wx.Menu()
-        menuAbout = filemenu.Append(wx.ID_ABOUT, "&About","Information about this program")
-        self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
         menuOpen = filemenu.Append(wx.ID_OPEN, "&Open", "Open saved Profile")
         self.Bind(wx.EVT_MENU, self.OnOpen, menuOpen)
         menuSave = filemenu.Append(wx.ID_SAVE, "&Save As", "Save current profile")
         self.Bind(wx.EVT_MENU, self.OnSaveProfAs, menuSave)
 
         filemenu.AppendSeparator()
+        menuAbout = filemenu.Append(wx.ID_ABOUT, "&About","Information about this program")
+        self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
+        filemenu.AppendSeparator()
+
         menuExit = filemenu.Append(wx.ID_EXIT, "E&xit", "Terminate the program")
         self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
         self.Bind(wx.EVT_CLOSE, self.OnExit)
 
+        #Create the Default profile menu and create an entry for all profiles in the profile folder
         self.DefProfileMenu = wx.Menu()
         self.Profiles = os.listdir(os.path.dirname(os.path.realpath(__file__)).replace("\\", "\\\\")+"\\Profiles\\")
         self.profilemenus = []
         self.Profiles.remove("Default_Profile.BradBotDef")
 
+        #Load the Default Profile
         with open(str(os.path.dirname(os.path.realpath(__file__)).replace("\\", "\\\\"))+"\\Profiles\\Default_Profile.BradBotDef", 'r') as Default:
             Defaultprof = Default.readline()
         if Defaultprof != "None":
@@ -200,7 +219,7 @@ class MainWindow(wx.Frame):
         else:
             print("No Default")
 
-
+        #Pre-checkMark the Current default profile
         for x in self.Profiles:
             self.profilemenus.append(self.DefProfileMenu.Append(wx.ID_ANY, x, "Profile", kind=wx.ITEM_CHECK))
             self.Bind(wx.EVT_MENU, self.Flip, self.profilemenus[-1])
@@ -208,21 +227,24 @@ class MainWindow(wx.Frame):
                 self.profilemenus[-1].Check()
                 self.Default = self.profilemenus[-1].GetId()
 
+        #Finish setting the menubar up
         menubar = wx.MenuBar()
         menubar.Append(filemenu,"&File")
         menubar.Append(self.DefProfileMenu, "&Default Profile")
         self.SetMenuBar(menubar)
         self.Show(True)
 
+        #Check if the Icon file is present and Set the window Icon if it is otherwise run the MissingIcon Function to generate a file missing dialog
         if wx.Icon("Assets/YTLogoBaseMKI.ico").IsOk():
             self.SetIcon(wx.Icon("Assets/YTLogoBaseMKI.ico"))
         else:
             self.MissingIcon()
 
+        #Run the key Listen thread
         self.listenthread = threading.Thread(target = self.timedhotkey)
         self.listenthread.start()
 
-
+    #Function used to make sure only one Default profile is checked at a time
     def Flip(self, event):
         print(self.Default)
         for x in self.profilemenus:
@@ -242,11 +264,13 @@ class MainWindow(wx.Frame):
             with open(str(os.path.dirname(os.path.realpath(__file__)).replace("\\", "\\"))+"\\Profiles\\Default_Profile.BradBotDef", 'w') as Default:
                 Default.write("None")
 
+    #Generates about dialog
     def OnAbout(self, event):
         dlg = wx.MessageDialog(self, "A small macro clicker thing", "An auto clicker with variable macros and timings")
         dlg.ShowModal()
         dlg.Destroy()
 
+    #Generates a window for opening a file (Defaults to profile folder)
     def OnOpen(self, event):
 
         if self.contentNotSaved:
@@ -267,6 +291,7 @@ class MainWindow(wx.Frame):
             except IOError:
                 wx.LogError("Cannot open file '%s'." % newfile)
 
+    #Loads the users selected profile from profile save and sets all macros
     def doLoadData(self, file, pathname):
         self.Profile = pathname.split("\\")[-1].split(".")[0]
         entryline = file.readline()
@@ -283,6 +308,7 @@ class MainWindow(wx.Frame):
             newentry[4] = int(newentry[4])
             self.entryvals[self.entries[entrypos]] = newentry
 
+    #Generates a window for saving a file (Defaults to profile folder)
     def OnSaveProfAs(self, event):
         workdi = str(os.path.dirname(os.path.realpath(__file__)).replace("\\", "\\\\"))+"\\Profiles\\"
         with wx.FileDialog(self, "Save Profile", wildcard="BradBot File (*.BradBot)|*.BradBot", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
@@ -300,6 +326,7 @@ class MainWindow(wx.Frame):
             except IOError:
                 wx.LogError("Cannot save current data in file '%s'." % pathname)
 
+    #Saves all user macros to file (Can be opened and read in any text program (Atom, Notepad, Notepad++, etc))
     def doSaveData(self, file, pathname):
         self.Profile = pathname.split("\\")[-1].split(".")[0]
         for entry in self.entries:
@@ -309,16 +336,19 @@ class MainWindow(wx.Frame):
             for data in self.entryvals[entry][:-1]:
                 file.write("{}, ".format(data))
 
+    #As of yet unused dialog window for missing file Should be soon used for alerting user of missing files at some point
     def MissingFile(self, FType):
         dlg = wx.MessageDialog(self, "Missing File", "Missing {} in {}".format(FType[0], FType[1]))
         dlg.ShowModal()
         dlg.Destroy()
 
+    #Generates dialog if Icon file is missing
     def MissingIcon(self):
         dlg = wx.MessageDialog(self, "Missing File", "Missing Icon File in Assets File")
         dlg.ShowModal()
         dlg.Destroy()
 
+    #Closes the whole program when called
     def OnExit(self,event):
         try:
             self.creationwindow.Destroy()
@@ -327,6 +357,7 @@ class MainWindow(wx.Frame):
         self.Destroy()
         os._exit(0)
 
+    #Run when an option is selected in the listbox but otherwise displays all parameters in the left side of window
     def OnMacroList(self, event):
         try:
             entry=event.GetEventObject().GetStringSelection()
@@ -334,6 +365,7 @@ class MainWindow(wx.Frame):
             entry=event
         self.text.SetLabel(" Item 1: {}, \n Item 2: {} \n HotKey active: {} \n Listening: {}\n Type: ".format(self.entryvals[entry][0],self.entryvals[entry][1],self.entryvals[entry][2],self.entryvals[entry][3]))
 
+    #If the user toggles the hotkey listen on then this function is called which starts the listening thread to run until later toggled off
     def toggleListenHotkey(self, event):
         entry=event.GetEventObject().GetStringSelection()
         self.entryvals[entry][3] = not self.entryvals[entry][3]
@@ -346,10 +378,12 @@ class MainWindow(wx.Frame):
             self.listenthread = threading.Thread(target = self.timedhotkey)
             self.listenthread.start()
 
+    #Creates the creation window
     def createcreationwin(self, event):
         self.creationwindow = AutoMacroEditor(None, "Macro Editor", self)
         self.creationwindow.Show()
 
+    #Creates the edit window but first checks if the user has a macro selected
     def editwin(self, event):
         try:
             currselect = self.entrylist.GetString(self.entrylist.GetSelection())
@@ -358,6 +392,7 @@ class MainWindow(wx.Frame):
         except:
             print("How tf")
 
+    #Main listen loop ran in another thread to main window and runs while at least one macros listen is active
     def timedhotkey(self):
         diff = 0
         run = True
