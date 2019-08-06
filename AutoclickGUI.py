@@ -146,7 +146,9 @@ class MainWindow(wx.Frame):
         self.entries = []
         self.Profile = None
         self.Default = None
+        self.activationsound_loc = str(os.path.dirname(os.path.realpath(__file__))+"\\Assets\\BBSnap.wav")
 
+        #print(os.path.isfile(self.activationsound_loc))
         wx.Frame.__init__(self,parent,title=title, size=(400,211))
         #Prevent wx from generating Log windows to allow only specifically created Error windows from showing
         tmp = wx.LogNull()
@@ -369,6 +371,7 @@ class MainWindow(wx.Frame):
 
     #If the user toggles the hotkey listen on then this function is called which starts the listening thread to run until later toggled off
     def toggleListenHotkey(self, event):
+        winsound.PlaySound(self.activationsound_loc, winsound.SND_FILENAME)
         entry=event.GetEventObject().GetStringSelection()
         self.entryvals[entry][3] = not self.entryvals[entry][3]
         if self.entryvals[entry][3]:
