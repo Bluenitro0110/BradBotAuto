@@ -239,8 +239,9 @@ class MainWindow(wx.Frame):
         self.Show(True)
 
         #Check if the Icon file is present and Set the window Icon if it is otherwise run the MissingIcon Function to generate a file missing dialog
-        if wx.Icon("Assets/YTLogoBaseMKI.ico").IsOk():
-            self.SetIcon(wx.Icon("Assets/YTLogoBaseMKI.ico"))
+        BBicon = "Assets/BBIcon.ico"
+        if wx.Icon(BBicon).IsOk():
+            self.SetIcon(wx.Icon(BBicon))
         else:
             self.MissingIcon()
 
@@ -309,6 +310,7 @@ class MainWindow(wx.Frame):
         for entrypos in range(0, len(self.entries)):
             newentry = file.readline().split(", ")[:-1]
             newentry.append(time())
+            newentry[2],newentry[3] = False, False
             newentry[4] = int(newentry[4])
             self.entryvals[self.entries[entrypos]] = newentry
 
@@ -421,6 +423,7 @@ class MainWindow(wx.Frame):
                     if diff >= self.entryvals[Hotkey][4]:
                         diff = 0
                         self.entryvals[Hotkey][5] = currtime
+                        #print(self.entryvals[Hotkey][2])
                         keyboard.press(self.entryvals[Hotkey][1])
                         sleep(0.05)
                         keyboard.release(self.entryvals[Hotkey][1])
