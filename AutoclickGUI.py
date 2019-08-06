@@ -1,6 +1,7 @@
 import keyboard, wx, os, threading
 from time import sleep, time
 from random import randint
+import winsound
 
 
 #modified wx textctrl to allow a Placeholder text to be set when the ctrl is empty
@@ -31,6 +32,7 @@ class AutoMacroEditor(wx.Frame):
         wx.Frame.__init__(self, parent, title = title, size = (400,250), style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER)
         self.main = main
         self.panel = wx.Panel(self, size = (200,250), style = wx.SUNKEN_BORDER)
+        self.soundname = ""
 
         self.namelab = wx.StaticText(self.panel, label = "Macro Name: ", size = (100,20), pos = (10,10), style = wx.TE_MULTILINE)
         self.Macrolab = wx.StaticText(self.panel, label = "Activation Key: ", size = (100,20), pos = (10,40), style = wx.TE_MULTILINE)
