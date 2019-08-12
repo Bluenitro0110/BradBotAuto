@@ -195,6 +195,8 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnOpen, menuOpen)
         menuSave = filemenu.Append(wx.ID_SAVE, "&Save As", "Save current profile")
         self.Bind(wx.EVT_MENU, self.OnSaveProfAs, menuSave)
+        soundMenu = filemenu.Append(wx.ID_ANY, "&Set Sound", "Set Current activation sound")
+        self.Bind(wx.EVT_MENU, self.OnOpenSound)
 
         filemenu.AppendSeparator()
         menuAbout = filemenu.Append(wx.ID_ABOUT, "&About","Information about this program")
@@ -231,8 +233,6 @@ class MainWindow(wx.Frame):
                 self.profilemenus[-1].Check()
                 self.Default = self.profilemenus[-1].GetId()
 
-        self.soundMenu = wx.Menu()
-        
 
         #Finish setting the menubar up
         menubar = wx.MenuBar()
@@ -251,6 +251,25 @@ class MainWindow(wx.Frame):
         #Run the key Listen thread
         self.listenthread = threading.Thread(target = self.timedhotkey)
         self.listenthread.start()
+
+    def OnOpenSound(self, event):
+        if self.contentNotSaved:
+            if wx.MessageBox("Current content has not been saved! Proceed?", "Please confirm",wx.ICON_QUESTION | wx.YES_NO, self) == wx.NO:
+                return
+        # otherwise ask the user what new file to open
+        with wx.FileDialog(self, "Open XYZ file", wildcard="Wav files (*.wav)|*.wav| MP3 file (*.mp3)|*.mp3", style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fileDialog:
+            fileDialog.SetDirectory(str(os.path.dirname(os.path.realpath(__file__)).replace("\\", "\\\\"))+"\\Profiles\\")
+
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return     # the user changed their mind
+
+            # Proceed loading the file chosen by the user
+            pathname = fileDialog.GetPath()
+            try:
+                self.activationsound_loc = pathname
+                print(pathname)
+            except IOError:
+                wx.LogError("Cannot open file '%s'." % newfile)
 
     #Function used to make sure only one Default profile is checked at a time
     def Flip(self, event):
@@ -375,7 +394,8 @@ class MainWindow(wx.Frame):
 
     #If the user toggles the hotkey listen on then this function is called which starts the listening thread to run until later toggled off
     def toggleListenHotkey(self, event):
-        winsound.PlaySound(self.activationsound_loc, winsound.SND_FILENAME)
+        self.soundthread = threading.Thread(target = PlayASound, args = (self.activationsound_loc,))
+        self.soundthread.start()
         entry=event.GetEventObject().GetStringSelection()
         self.entryvals[entry][3] = not self.entryvals[entry][3]
         if self.entryvals[entry][3]:
@@ -430,6 +450,8 @@ class MainWindow(wx.Frame):
 
 
 
+def PlayASound(loc):
+    winsound.PlaySound(loc, winsound.SND_FILENAME)
 
 app = wx.App(False)
 frame = MainWindow(None, "BradBot Auto-Clicker So im always here")
