@@ -231,6 +231,9 @@ class MainWindow(wx.Frame):
                 self.profilemenus[-1].Check()
                 self.Default = self.profilemenus[-1].GetId()
 
+        self.soundMenu = wx.Menu()
+        
+
         #Finish setting the menubar up
         menubar = wx.MenuBar()
         menubar.Append(filemenu,"&File")
@@ -277,7 +280,6 @@ class MainWindow(wx.Frame):
 
     #Generates a window for opening a file (Defaults to profile folder)
     def OnOpen(self, event):
-
         if self.contentNotSaved:
             if wx.MessageBox("Current content has not been saved! Proceed?", "Please confirm",wx.ICON_QUESTION | wx.YES_NO, self) == wx.NO:
                 return
@@ -404,9 +406,7 @@ class MainWindow(wx.Frame):
         diff = 0
         run = True
         for Hotkey in self.entries:
-            #print(Hotkey)
             self.entryvals[Hotkey][5] = time()
-
         while(run):
             run = False
             for Hotkey in self.entries:
@@ -423,7 +423,6 @@ class MainWindow(wx.Frame):
                     if diff >= self.entryvals[Hotkey][4]:
                         diff = 0
                         self.entryvals[Hotkey][5] = currtime
-                        #print(self.entryvals[Hotkey][2])
                         keyboard.press(self.entryvals[Hotkey][1])
                         sleep(0.05)
                         keyboard.release(self.entryvals[Hotkey][1])
